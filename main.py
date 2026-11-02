@@ -35,7 +35,7 @@ BOT_CONFIG = {
     "smm_url": "https://smm-panel-provider.com/api/v2",  # SMM API URL
     "smm_key": "YOUR_SMM_API_KEY",                        # SMM API KEY
     "smm_service_id": "123",                             # SERVICE ID
-    "smm_amount": 1000                                   # Avto-boost soni
+    "smm_amount": 1000                                   # Avto-boost standart soni
 }
 
 PREVIOUS_POSITIONS = {}
