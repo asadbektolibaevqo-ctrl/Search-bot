@@ -27,7 +27,6 @@ STRING_SESSION = "SIZNING_STRING_SESSION_KODINGIZ"
 
 MAIN_ADMIN_ID = 123456789  # O'zingizning Telegram ID'ingizni kiriting
 
-# Bot Sozlamalari (Foydalanuvchilar o'zlari o'zgartira oladi)
 BOT_CONFIG = {
     "channel_username": "siznin_kanaliniz",
     "keywords": ["Nukus", "Kungrad", "Kegeyli", "Shimbay"],
@@ -39,10 +38,8 @@ BOT_CONFIG = {
     "smm_amount": 1000
 }
 
-# Kanalning oldingi pozitsiyalarini eslab qolish kesh-xotirasi (1-o'ringa chiqqanda bildirishnoma yuborish uchun)
 PREVIOUS_POSITIONS = {}
 
-# --- FOYDANUVCHILAR BAZASI (JSON) ---
 USERS_FILE = "users.json"
 
 def load_users():
@@ -58,7 +55,6 @@ def save_users(users_data):
 users_db = load_users()
 user_states = {}
 
-# --- Dummy HTTP Server (Render Port Binding) ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -70,11 +66,9 @@ def run_dummy_server():
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     server.serve_forever()
 
-# --- Clients ---
 bot = Client("search_bot_app", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 userbot = Client("userbot_app", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION) if STRING_SESSION != "SIZNING_STRING_SESSION_KODINGIZ" else None
 
-# --- SMM API & SEARCH FUNCTIONS ---
 def send_smm_boost():
     try:
         payload = {
@@ -112,7 +106,6 @@ async def run_full_check(notify_user=False, target_chat_id=None):
         if pos and pos > 0:
             report += f"• <b>{kw}</b>: {pos}-o'rinda\n"
             
-            # Agar 1-o'ringa chiqqan bo'lsa xabar berish
             if pos == 1 and prev_pos != 1 and target_chat_id:
                 try:
                     await bot.send_message(
@@ -139,7 +132,7 @@ async def run_full_check(notify_user=False, target_chat_id=None):
                     await bot.send_message(
                         target_chat_id,
                         "⚠️ <b>OGOHLANTIRISH!</b>\n\n"
-                        f"Kanalingiz pozitsiyasi top-3 dan tushib ketdi. Hozir avto-boost orqali muammoni hal qilamiz va qayta ko'taramiz! 🛠🚀"
+                        "Kanalingiz pozitsiyasi top-3 dan tushib ketdi. Hozir avto-boost orqali muammoni hal qilamiz va qayta ko'taramiz! 🛠🚀"
                     )
                 except Exception as e:
                     logger.error(f"Xabar yuborishda xato: {e}")
@@ -150,18 +143,15 @@ async def run_full_check(notify_user=False, target_chat_id=None):
 
     return report
 
-# --- BACKGROUND MONITORING LOOP ---
 async def auto_monitor_loop():
     while True:
         await asyncio.sleep(BOT_CONFIG["check_interval_minutes"] * 60)
         if userbot:
-            # Tizimga ulangan barcha foydalanuvchilarga avto-tekshiruv va xabarnomalar yuboriladi
             for u, data in users_db.items():
                 tg_id = data.get("telegram_id")
                 if tg_id:
                     await run_full_check(notify_user=True, target_chat_id=tg_id)
 
-# --- AUTH HELPERS & KEYBOARDS ---
 def is_logged_in(user_id):
     if user_id == MAIN_ADMIN_ID:
         return True
@@ -179,7 +169,6 @@ def main_keyboard(user_id):
         kb.append([KeyboardButton("👤 Login yaratish")])
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
 
-# --- BOT COMMANDS & HANDLERS ---
 @bot.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
     user_id = message.from_user.id
@@ -196,7 +185,7 @@ async def start_cmd(client: Client, message: Message):
         f"<b>Telegram Search Booster Bot Faol!</b>\n\n"
         f"📢 Kanal: @{BOT_CONFIG['channel_username']}\n"
         f"🔑 Kalitlar: {', '.join(BOT_CONFIG['keywords'])}\n"
-        f"🔄 Avto-boost: {'✅ Yoqilgan' if BOT_CONFIG['auto_boost'] else '❌ O'chirilgan'}\n"
+        f"🔄 Avto-boost: {'✅ Yoqilgan' if BOT_CONFIG['auto_boost'] else '❌ O_chirilgan'}\n"
         f"⏱ Interval: Har {BOT_CONFIG['check_interval_minutes']} daqiqada",
         reply_markup=main_keyboard(user_id)
     )
@@ -218,13 +207,11 @@ async def create_user_start(client: Client, message: Message):
     user_states[MAIN_ADMIN_ID] = {"step": "admin_new_username"}
     await message.reply_text("👤 Yangi foydalanuvchi uchun **Login** kiriting:")
 
-# --- TEXT HANDLER & STATE MACHINE ---
 @bot.on_message(filters.text & ~filters.command(["start", "login", "create_user"]))
 async def text_handler(client: Client, message: Message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # Admin Login Yaratish
     if user_id == MAIN_ADMIN_ID and user_id in user_states:
         state = user_states[user_id].get("step")
         if state == "admin_new_username":
@@ -240,7 +227,6 @@ async def text_handler(client: Client, message: Message):
             await message.reply_text(f"✅ Muvaffaqiyatli yaratildi!\n\n👤 Login: <code>{new_user}</code>\n🔑 Parol: <code>{text}</code>")
             return
 
-    # Foydalanuvchi Kirishi
     if user_id in user_states:
         state = user_states[user_id].get("step")
         if state == "awaiting_login":
@@ -262,7 +248,6 @@ async def text_handler(client: Client, message: Message):
                 await message.reply_text("❌ Parol noto'g'ri! Qaytadan kiriting:")
             return
         
-        # Kalit so'zlar va Kanalni o'zgartirish
         elif state == "set_channel":
             BOT_CONFIG["channel_username"] = text.replace("@", "")
             del user_states[user_id]
@@ -279,7 +264,6 @@ async def text_handler(client: Client, message: Message):
         await message.reply_text("⚠️ Avval /login buyrug'i orqali tizimga kiring.")
         return
 
-    # Tugmalar
     if text == "🔍 Qidiruvni tekshirish":
         if not userbot:
             await message.reply_text("⚠️ Userbot kiritilmagan! Qidiruv ishlamaydi.")
@@ -293,17 +277,19 @@ async def text_handler(client: Client, message: Message):
         await message.reply_text("🚀 SMM Panel'ga so'rov yuborildi!")
 
     elif text == "📊 Status":
+        auto_status = "YOQILGAN" if BOT_CONFIG["auto_boost"] else "O_CHIRILGAN"
         await message.reply_text(
             f"<b>Tizim Holati:</b>\n\n"
             f"• Kanal: @{BOT_CONFIG['channel_username']}\n"
             f"• Kalitlar: {', '.join(BOT_CONFIG['keywords'])}\n"
-            f"• Avto-boost rejimi: {'🟢 YOQILGAN' if BOT_CONFIG['auto_boost'] else '🔴 O'CHIRILGAN'}\n"
+            f"• Avto-boost rejimi: 🟢 {auto_status}\n"
             f"• Tekshiruv vaqti: Har {BOT_CONFIG['check_interval_minutes']} daqiqada"
         )
 
     elif text == "⚙️ Sozlamalar":
+        btn_text = "Yoqilgan" if BOT_CONFIG["auto_boost"] else "O_chirilgan"
         inline_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"Avto-boost: {'✅ Yoqilgan' if BOT_CONFIG['auto_boost'] else '❌ O'chirilgan'}", callback_data="toggle_autoboost")],
+            [InlineKeyboardButton(f"Avto-boost: {btn_text}", callback_data="toggle_autoboost")],
             [InlineKeyboardButton("⏱ Tekshirish oralig'i (15m/30m/60m)", callback_data="change_time")],
             [InlineKeyboardButton("📢 Kanal usernamesini o'zgartirish", callback_data="change_channel")],
             [InlineKeyboardButton("🔑 Kalit so'zlarni o'zgartirish", callback_data="change_keywords")]
@@ -320,7 +306,7 @@ async def callback_handler(client: Client, query: CallbackQuery):
     data = query.data
     if data == "toggle_autoboost":
         BOT_CONFIG["auto_boost"] = not BOT_CONFIG["auto_boost"]
-        status = '✅ Yoqildi' if BOT_CONFIG['auto_boost'] else '❌ O'chirildi'
+        status = 'Yoqildi' if BOT_CONFIG['auto_boost'] else 'O_chirildi'
         await query.answer(f"Avto-boost {status}")
     elif data == "change_time":
         if BOT_CONFIG["check_interval_minutes"] == 15:
@@ -339,7 +325,6 @@ async def callback_handler(client: Client, query: CallbackQuery):
         await query.message.reply_text("🔑 Kalit so'zlarni vergul bilan ajratib yozing (masalan: `Nukus, Shimbay, Avto`):")
         await query.answer()
 
-# --- MAIN RUNNER ---
 async def main():
     server_thread = threading.Thread(target=run_dummy_server, daemon=True)
     server_thread.start()
