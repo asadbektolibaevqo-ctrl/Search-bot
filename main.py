@@ -25,7 +25,7 @@ API_HASH = "fd1edeb73b34fa0955df2a06f31620fd"
 BOT_TOKEN = "9214605810:AAEqIRIy93JA0qk4k792iRnTpq9ItO8quk4"
 STRING_SESSION = "SIZNING_STRING_SESSION_KODINGIZ"
 
-MAIN_ADMIN_ID = 582910482  # Telegram ID'ingiz
+MAIN_ADMIN_ID = 8660278027  # Telegram ID'ingiz
 
 BOT_CONFIG = {
     "channel_username": "siznin_kanaliniz",
