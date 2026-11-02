@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # --- KONFİGÜRASYON ---
 API_ID = 37881267
 API_HASH = "fd1edeb73b34fa0955df2a06f31620fd"
-BOT_TOKEN = "9214605810:AAEqIRIy93JA0qk4k792iRnTp"
+BOT_TOKEN = "9214605810:AAEqIRIy93JA0qk4k792iRnTpq9ItO8quk4"
 
 MAIN_ADMIN_ID = 0
 MY_CHANNEL_USERNAME = "siznin_kanaliniz"
