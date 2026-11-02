@@ -4,23 +4,31 @@ import os
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+
+# --- PYTHON 3.14+ VE PYROGRAM EVENT LOOP DÜZELTMESİ (PYROGRAM IMPORTUNDAN ÖNCE OLMALIDIR) ---
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
 from pyrogram import Client, filters
 from pyrogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-# --- LOGIRASH SOZLAMALARI ---
+# --- LOG AYARLARI ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- KONFIGURATSIYA ---
+# --- KONFİGÜRASYON ---
 API_ID = 37881267
 API_HASH = "fd1edeb73b34fa0955df2a06f31620fd"
 BOT_TOKEN = "9214605810:AAEqIRIy93JA0qk4k792iRnTp"
 
-MAIN_ADMIN_ID = 0  # Telegram ID-ingizni kiriting
-MY_CHANNEL_USERNAME = "siznin_kanaliniz"  # Kanalingiz username-i
+MAIN_ADMIN_ID = 0
+MY_CHANNEL_USERNAME = "siznin_kanaliniz"
 KEYWORDS = ["Nukus", "Kungrad", "Kegeyli", "Shimbay"]
 
-# SMM Panel API Sozlamalari
+# SMM Panel API Ayarları
 smm_config = {
     "url": "https://smm-panel-provider.com/api/v2",
     "key": "YOUR_SMM_API_KEY",
@@ -28,7 +36,7 @@ smm_config = {
     "amount": 5000
 }
 
-# --- RENDER WEB SERVICE UCHUN PORT DUMMY SERVER ---
+# --- RENDER WEB SERVICE İÇİN DUMMY PORT SUNUCUSU ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -36,13 +44,12 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK - Bot is running")
 
 def run_dummy_server():
-    # Render avtomatik ajratadigan PORT ni oladi (standart 10000)
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    logger.info(f"Web server port {port} da ishga tushdi.")
+    logger.info(f"Web server port {port} üzerinde başlatıldı.")
     server.serve_forever()
 
-# --- PYROGRAM KLIENTINI YARATISH ---
+# --- PYROGRAM ISTEMCISI ---
 app = Client(
     "search_bot",
     api_id=API_ID,
@@ -50,7 +57,7 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-# --- BOT HANDLERLARI VA LOGIKASI ---
+# --- BOT KOMUTLARI VE MANTIĞI ---
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
@@ -88,12 +95,12 @@ def order_smm_boost():
         response = requests.post(smm_config["url"], data=payload, timeout=10)
         return response.json()
     except Exception as e:
-        logger.error(f"SMM Panel xatoligi: {e}")
+        logger.error(f"SMM Panel hatası: {e}")
         return None
 
-# --- MAIN ISHGA TUSHIRISH (Asyncio Event Loop) ---
+# --- ANA ÇALIŞTIRICI ---
 async def main():
-    # Web Service uchun fonda kichik HTTP serverni yuritish (Render talabi)
+    # Render'ın port kontrolünü geçmek için web sunucusunu arka planda başlatır
     server_thread = threading.Thread(target=run_dummy_server, daemon=True)
     server_thread.start()
 
@@ -102,9 +109,7 @@ async def main():
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Bot to'xtatildi.")
+        logger.info("Bot durduruldu.")
