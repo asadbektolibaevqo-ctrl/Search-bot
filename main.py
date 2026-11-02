@@ -19,27 +19,26 @@ from pyrogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineK
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Boshlang'ich Konfiguratsiya ---
+# --- BOSH LANG'ICH SOZLAMALAR ---
 API_ID = 37881267
 API_HASH = "fd1edeb73b34fa0955df2a06f31620fd"
 BOT_TOKEN = "9214605810:AAEqIRIy93JA0qk4k792iRnTpq9ItO8quk4"
 STRING_SESSION = "SIZNING_STRING_SESSION_KODINGIZ"
 
-MAIN_ADMIN_ID = 8660278027  # O'zingizning Telegram ID'ingizni kiriting
+MAIN_ADMIN_ID = 582910482  # Telegram ID'ingiz
 
 BOT_CONFIG = {
     "channel_username": "siznin_kanaliniz",
     "keywords": ["Nukus", "Kungrad", "Kegeyli", "Shimbay"],
     "auto_boost": True,
     "check_interval_minutes": 15,
-    "smm_url": "https://smm-panel-provider.com/api/v2",
-    "smm_key": "YOUR_SMM_API_KEY",
-    "smm_service_id": "123",
-    "smm_amount": 1000
+    "smm_url": "https://smm-panel-provider.com/api/v2",  # SMM API URL
+    "smm_key": "YOUR_SMM_API_KEY",                        # SMM API KEY
+    "smm_service_id": "123",                             # SERVICE ID
+    "smm_amount": 1000                                   # Avto-boost soni
 }
 
 PREVIOUS_POSITIONS = {}
-
 USERS_FILE = "users.json"
 
 def load_users():
@@ -69,14 +68,15 @@ def run_dummy_server():
 bot = Client("search_bot_app", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 userbot = Client("userbot_app", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION) if STRING_SESSION != "SIZNING_STRING_SESSION_KODINGIZ" else None
 
-def send_smm_boost():
+def send_smm_boost(custom_amount=None):
     try:
+        amount = custom_amount if custom_amount else BOT_CONFIG["smm_amount"]
         payload = {
             "key": BOT_CONFIG["smm_key"],
             "action": "add",
             "service": BOT_CONFIG["smm_service_id"],
             "link": f"https://t.me/{BOT_CONFIG['channel_username']}",
-            "quantity": BOT_CONFIG["smm_amount"]
+            "quantity": amount
         }
         res = requests.post(BOT_CONFIG["smm_url"], data=payload, timeout=10)
         return res.json()
@@ -105,7 +105,6 @@ async def run_full_check(notify_user=False, target_chat_id=None):
         
         if pos and pos > 0:
             report += f"• <b>{kw}</b>: {pos}-o'rinda\n"
-            
             if pos == 1 and prev_pos != 1 and target_chat_id:
                 try:
                     await bot.send_message(
@@ -126,18 +125,18 @@ async def run_full_check(notify_user=False, target_chat_id=None):
     if boost_needed:
         if BOT_CONFIG["auto_boost"]:
             send_smm_boost()
-            report += "\n🚀 <b>Avto-boost Ishladi:</b> Pozitsiya tushganligi sababli SMM zakaz yuborildi!"
+            report += f"\n🚀 <b>Avto-boost Ishladi:</b> SMM zakaz ({BOT_CONFIG['smm_amount']} ta) yuborildi!"
             if notify_user and target_chat_id:
                 try:
                     await bot.send_message(
                         target_chat_id,
-                        "⚠️ <b>OGOHLANTIRISH!</b>\n\n"
-                        "Kanalingiz pozitsiyasi top-3 dan tushib ketdi. Hozir avto-boost orqali muammoni hal qilamiz va qayta ko'taramiz! 🛠🚀"
+                        f"⚠️ <b>OGOHLANTIRISH!</b>\n\n"
+                        f"Kanalingiz pozitsiyasi top-3 dan tushib ketdi. Hozir avto-boost ({BOT_CONFIG['smm_amount']} ta) yuborildi! 🛠🚀"
                     )
                 except Exception as e:
                     logger.error(f"Xabar yuborishda xato: {e}")
         else:
-            report += "\n⚠️ <b>Ogohlantirish:</b> Pozitsiya tushgan, lekin Avto-boost rejimi O'CHIRILGAN!"
+            report += "\n⚠️ <b>Ogohlantirish:</b> Pozitsiya tushgan, lekin Auto 24/7 rejimi O'CHIRILGAN!"
     else:
         report += "\n✅ Kanal barcha kalit so'zlar bo'yicha TOP-3 talikda!"
 
@@ -162,7 +161,7 @@ def is_logged_in(user_id):
 
 def main_keyboard(user_id):
     kb = [
-        [KeyboardButton("🔍 Qidiruvni tekshirish"), KeyboardButton("🚀 Qo'lda Boost berish")],
+        [KeyboardButton("🔍 Qidiruvni tekshirish"), KeyboardButton("🚀 Boost qilish")],
         [KeyboardButton("⚙️ Sozlamalar"), KeyboardButton("📊 Status")]
     ]
     if user_id == MAIN_ADMIN_ID:
@@ -185,7 +184,8 @@ async def start_cmd(client: Client, message: Message):
         f"<b>Telegram Search Booster Bot Faol!</b>\n\n"
         f"📢 Kanal: @{BOT_CONFIG['channel_username']}\n"
         f"🔑 Kalitlar: {', '.join(BOT_CONFIG['keywords'])}\n"
-        f"🔄 Avto-boost: {'✅ Yoqilgan' if BOT_CONFIG['auto_boost'] else '❌ O_chirilgan'}\n"
+        f"🔢 Avto-boost miqdori: {BOT_CONFIG['smm_amount']} ta\n"
+        f"🔄 Auto 24/7: {'✅ Yoqilgan' if BOT_CONFIG['auto_boost'] else '❌ O_chirilgan'}\n"
         f"⏱ Interval: Har {BOT_CONFIG['check_interval_minutes']} daqiqada",
         reply_markup=main_keyboard(user_id)
     )
@@ -247,7 +247,6 @@ async def text_handler(client: Client, message: Message):
             else:
                 await message.reply_text("❌ Parol noto'g'ri! Qaytadan kiriting:")
             return
-        
         elif state == "set_channel":
             BOT_CONFIG["channel_username"] = text.replace("@", "")
             del user_states[user_id]
@@ -259,6 +258,29 @@ async def text_handler(client: Client, message: Message):
             del user_states[user_id]
             await message.reply_text(f"✅ Kalit so'zlar yangilandi: {', '.join(keywords_list)}")
             return
+        elif state == "manual_boost_amount":
+            if text.isdigit():
+                amount = int(text)
+                del user_states[user_id]
+                send_smm_boost(custom_amount=amount)
+                await message.reply_text(f"🚀 **SMM Panel'ga {amount} ta boost buyurtmasi yuborildi!**")
+            else:
+                await message.reply_text("❌ Iltimos, faqat raqam kiriting (masalan: `500` yoki `1000`):")
+            return
+        elif state == "set_smm_api":
+            try:
+                parts = [p.strip() for p in text.split("\n")]
+                if len(parts) >= 3:
+                    BOT_CONFIG["smm_url"] = parts[0]
+                    BOT_CONFIG["smm_key"] = parts[1]
+                    BOT_CONFIG["smm_service_id"] = parts[2]
+                    del user_states[user_id]
+                    await message.reply_text("✅ SMM API ma'lumotlari saqlandi!")
+                else:
+                    await message.reply_text("❌ Format noto'g'ri. 3 qatorda yuboring!")
+            except Exception as e:
+                await message.reply_text(f"Xatolik: {e}")
+            return
 
     if not is_logged_in(user_id):
         await message.reply_text("⚠️ Avval /login buyrug'i orqali tizimga kiring.")
@@ -266,30 +288,34 @@ async def text_handler(client: Client, message: Message):
 
     if text == "🔍 Qidiruvni tekshirish":
         if not userbot:
-            await message.reply_text("⚠️ Userbot kiritilmagan! Qidiruv ishlamaydi.")
+            await message.reply_text("⚠️ Userbot ulanmagan! (STRING_SESSION kiriting).")
             return
         msg = await message.reply_text("🔎 Qidiruv tahlil qilinmoqda...")
         report = await run_full_check(notify_user=False)
         await msg.edit_text(report)
 
-    elif text == "🚀 Qo'lda Boost berish":
-        send_smm_boost()
-        await message.reply_text("🚀 SMM Panel'ga so'rov yuborildi!")
+    elif text == "🚀 Boost qilish":
+        auto_status_btn = "🟢 Auto 24/7 (FAOL)" if BOT_CONFIG["auto_boost"] else "🔴 Auto 24/7 (O'CHIK)"
+        inline_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(auto_status_btn, callback_data="toggle_auto_247")],
+            [InlineKeyboardButton("✋ Qo'lda berish", callback_data="start_manual_boost")]
+        ])
+        await message.reply_text("<b>🚀 Boost Rejimini Tanlang:</b>", reply_markup=inline_kb)
 
     elif text == "📊 Status":
-        auto_status = "YOQILGAN" if BOT_CONFIG["auto_boost"] else "O_CHIRILGAN"
+        auto_status = "YOQILGAN (24/7 Nazoratda)" if BOT_CONFIG["auto_boost"] else "O_CHIRILGAN"
         await message.reply_text(
             f"<b>Tizim Holati:</b>\n\n"
             f"• Kanal: @{BOT_CONFIG['channel_username']}\n"
             f"• Kalitlar: {', '.join(BOT_CONFIG['keywords'])}\n"
-            f"• Avto-boost rejimi: 🟢 {auto_status}\n"
+            f"• Auto 24/7: {auto_status}\n"
+            f"• Auto-boost miqdori: {BOT_CONFIG['smm_amount']} ta\n"
             f"• Tekshiruv vaqti: Har {BOT_CONFIG['check_interval_minutes']} daqiqada"
         )
 
     elif text == "⚙️ Sozlamalar":
-        btn_text = "Yoqilgan" if BOT_CONFIG["auto_boost"] else "O_chirilgan"
         inline_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"Avto-boost: {btn_text}", callback_data="toggle_autoboost")],
+            [InlineKeyboardButton("🔑 SMM API va Service ID sozlash", callback_data="change_smm_api")],
             [InlineKeyboardButton("⏱ Tekshirish oralig'i (15m/30m/60m)", callback_data="change_time")],
             [InlineKeyboardButton("📢 Kanal usernamesini o'zgartirish", callback_data="change_channel")],
             [InlineKeyboardButton("🔑 Kalit so'zlarni o'zgartirish", callback_data="change_keywords")]
@@ -304,10 +330,36 @@ async def callback_handler(client: Client, query: CallbackQuery):
         return
 
     data = query.data
-    if data == "toggle_autoboost":
+    if data == "toggle_auto_247":
         BOT_CONFIG["auto_boost"] = not BOT_CONFIG["auto_boost"]
-        status = 'Yoqildi' if BOT_CONFIG['auto_boost'] else 'O_chirildi'
-        await query.answer(f"Avto-boost {status}")
+        status = "Yoqildi! Bot endi 24/7 qidiruvni nazorat qiladi." if BOT_CONFIG["auto_boost"] else "O'chirildi!"
+        await query.answer(f"Auto 24/7: {status}", show_alert=True)
+        
+        # Tugmani yangilash
+        auto_status_btn = "🟢 Auto 24/7 (FAOL)" if BOT_CONFIG["auto_boost"] else "🔴 Auto 24/7 (O'CHIK)"
+        inline_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(auto_status_btn, callback_data="toggle_auto_247")],
+            [InlineKeyboardButton("✋ Qo'lda berish", callback_data="start_manual_boost")]
+        ])
+        await query.message.edit_reply_markup(reply_markup=inline_kb)
+
+    elif data == "start_manual_boost":
+        user_states[user_id] = {"step": "manual_boost_amount"}
+        await query.message.reply_text("🔢 Nechta boost (nakrutka) urmoqchisiz? Sonini kiriting (masalan: `500` yoki `1000`):")
+        await query.answer()
+
+    elif data == "change_smm_api":
+        user_states[user_id] = {"step": "set_smm_api"}
+        await query.message.reply_text(
+            "🔑 <b>SMM API sozlamasini kiritish uchun 3 ta qatorda yuboring:</b>\n\n"
+            "1-qator: SMM API URL\n"
+            "2-qator: SMM API KEY\n"
+            "3-qator: SERVICE ID\n\n"
+            "<i>Masalan:</i>\n"
+            "<code>https://smm-provider.com/api/v2\nmy_api_key_12345\n789</code>"
+        )
+        await query.answer()
+
     elif data == "change_time":
         if BOT_CONFIG["check_interval_minutes"] == 15:
             BOT_CONFIG["check_interval_minutes"] = 30
@@ -316,13 +368,15 @@ async def callback_handler(client: Client, query: CallbackQuery):
         else:
             BOT_CONFIG["check_interval_minutes"] = 15
         await query.answer(f"Vaqt har {BOT_CONFIG['check_interval_minutes']} daqiqaga o'zgartirildi!")
+
     elif data == "change_channel":
         user_states[user_id] = {"step": "set_channel"}
         await query.message.reply_text("📢 Yangi kanal username'ini kiriting (masalan: `my_channel`):")
         await query.answer()
+
     elif data == "change_keywords":
         user_states[user_id] = {"step": "set_keywords"}
-        await query.message.reply_text("🔑 Kalit so'zlarni vergul bilan ajratib yozing (masalan: `Nukus, Shimbay, Avto`):")
+        await query.message.reply_text("🔑 Kalit so'zlarni vergul bilan ajratib yozing (masalan: `Nukus, Shimbay`):")
         await query.answer()
 
 async def main():
